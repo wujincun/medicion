@@ -11,6 +11,7 @@
 
         <el-table-column fixed="right" label="操作" width="120">
             <template #default="scope">
+                <el-button link type="primary" size="small" @click="handlEdit(scope.$index, scope.row)">编辑</el-button>
                 <el-button link type="primary" size="small" @click="handleDelete(scope.$index, scope.row)">删除</el-button>
             </template>
         </el-table-column>
@@ -26,10 +27,13 @@ interface User {
 }
 
 import { reactive } from 'vue';
+import { useRouter } from 'vue-router';
+const router = useRouter();
 const state = reactive({
     allData: JSON.parse(localStorage.getItem('data') || '[]'),
     searchVal: '',
-    tableData: []
+    tableData: [],
+    dialogFormVisible: false
 });
 const handleSearch = () => {
     const searchData = state.allData.filter(item => {
@@ -50,9 +54,11 @@ const handleDelete = (index: number, row: User) => {
             ElMessage.success('删除成功');
         })
         .catch(() => {
-            // catch error
             console.log('删除失败');
         });
+};
+const handlEdit = (index: number, row) => {
+    router.push({ name: 'add', query: { data: JSON.stringify(row) }, params: { data: row } });
 };
 </script>
 <style>

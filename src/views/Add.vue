@@ -31,7 +31,8 @@
                 </el-select>
             </el-form-item>
             <el-form-item>
-                <el-button type="primary" @click="submitForm(ruleFormRef)">添加</el-button>
+                <el-button type="primary" v-if="form.id" @click="submitForm(ruleFormRef)">编辑</el-button>
+                <el-button type="primary" v-else @click="submitForm(ruleFormRef)">添加</el-button>
                 <el-button @click="resetForm(ruleFormRef)">重置</el-button>
             </el-form-item>
         </el-form>
@@ -41,17 +42,25 @@
 import { reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { getUuid } from '../utils/index';
+import { useRoute } from 'vue-router';
+const route = useRoute();
+const detailData = JSON.parse(route?.query?.data || '{}');
+
+const emit = defineEmits(['added']);
 const allData = JSON.parse(localStorage.getItem('data') || '[]');
 const drugNameList = JSON.parse(localStorage.getItem('drugNameList') || '[]');
 const drugFactoryList = JSON.parse(localStorage.getItem('drugFactoryList') || '[]');
 const drugPositionList = JSON.parse(localStorage.getItem('drugPositionList') || '[]');
 const ruleFormRef = ref<FormInstance>();
+const { id, name, factory, position, layer } = detailData as any;
 const form = reactive({
-    name: '',
-    factory: '',
-    position: '',
-    layer: ''
+    id: id || '',
+    name: name || '',
+    factory: factory || '',
+    position: position || '',
+    layer: layer || ''
 });
+
 const rules = reactive<FormRules>({
     name: [{ required: true, message: '请输入药品名称', trigger: 'change' }],
     factory: [{ required: true, message: '请输入药品厂家', trigger: 'change' }],
@@ -62,19 +71,40 @@ const submitForm = async (formEl: FormInstance | undefined) => {
     if (!formEl) return;
     await formEl.validate((valid, fields) => {
         if (valid) {
+            let newAllData: any = [];
             // 查重
-            const isExist = false; //getExist();
-            if (!isExist) {
-                // 添加
-                allData.push({
-                    ...form,
-                    id: getUuid()
+            if (form.id) {
+                newAllData = allData.map(item => {
+                    if (item.id == form.id) {
+                        console.log('1111', form, item);
+                        item = { ...form };
+                    }
+                    return item;
                 });
-                localStorage.setItem('data', JSON.stringify(allData));
-                saveToStorage(drugNameList, 'drugNameList', form.name);
-                saveToStorage(drugFactoryList, 'drugFactoryList', form.factory);
-                saveToStorage(drugPositionList, 'drugPositionList', form.position);
+                // 修改
+            } else {
+                // 添加
+                newAllData = [
+                    ...allData,
+                    {
+                        ...form,
+                        id: getUuid()
+                    }
+                ];
             }
+            // if (!isExist) {
+            // 添加
+            //     allData.push({
+            //         ...form,
+            //         id: getUuid()
+            //     });
+            // }
+            localStorage.setItem('data', JSON.stringify(newAllData));
+            saveToStorage(drugNameList, 'drugNameList', form.name);
+            saveToStorage(drugFactoryList, 'drugFactoryList', form.factory);
+            saveToStorage(drugPositionList, 'drugPositionList', form.position);
+            emit('added');
+
             ElMessage.success('添加成功');
             formEl.resetFields();
             console.log('submit!', form);
@@ -88,13 +118,6 @@ const resetForm = (formEl: FormInstance | undefined) => {
     if (!formEl) return;
     formEl.resetFields();
 };
-
-// const getExist = ()=>{
-//   const flag = false
-//   allData.forEach(item=>{
-//     if(item.name === form.name ){}
-//   })
-// }
 
 const querySearch = (queryString: string, cb: any, list: string[]) => {
     const results = queryString ? list.filter(item => item.indexOf(queryString) > -1) : list;
