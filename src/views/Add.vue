@@ -31,8 +31,7 @@
                 </el-select>
             </el-form-item>
             <el-form-item>
-                <el-button type="primary" v-if="form.id" @click="submitForm(ruleFormRef)">编辑</el-button>
-                <el-button type="primary" v-else @click="submitForm(ruleFormRef)">添加</el-button>
+                <el-button type="primary" @click="submitForm(ruleFormRef)">{{ isEdit ? '编辑' : '添加' }}</el-button>
                 <el-button @click="resetForm(ruleFormRef)">重置</el-button>
             </el-form-item>
         </el-form>
@@ -42,17 +41,26 @@
 import { reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { getUuid } from '../utils/index';
-import { useRoute } from 'vue-router';
-const route = useRoute();
-const detailData = JSON.parse(route?.query?.data || '{}');
-
-const emit = defineEmits(['added']);
+import type { User } from './types';
 const allData = JSON.parse(localStorage.getItem('data') || '[]');
 const drugNameList = JSON.parse(localStorage.getItem('drugNameList') || '[]');
 const drugFactoryList = JSON.parse(localStorage.getItem('drugFactoryList') || '[]');
 const drugPositionList = JSON.parse(localStorage.getItem('drugPositionList') || '[]');
 const ruleFormRef = ref<FormInstance>();
-const { id, name, factory, position, layer } = detailData as any;
+interface Props {
+    params?: User;
+}
+// prop默认值
+const props = withDefaults(defineProps<Props>(), {
+    // params: () => ({})
+});
+
+const isEdit = props?.params?.id;
+const emit = defineEmits<{
+    (e: 'edit'): void;
+}>();
+
+const { id, name, factory, position, layer } = props?.params || {};
 const form = reactive({
     id: id || '',
     name: name || '',
@@ -73,39 +81,27 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         if (valid) {
             let newAllData: any = [];
             // 查重
-            if (form.id) {
+            if (isEdit) {
                 newAllData = allData.map(item => {
                     if (item.id == form.id) {
-                        console.log('1111', form, item);
                         item = { ...form };
                     }
                     return item;
                 });
-                // 修改
+                saveData(newAllData);
+                emit('edit');
             } else {
                 // 添加
                 newAllData = [
-                    ...allData,
+                    ...JSON.parse(localStorage.getItem('data') || '[]'),
                     {
                         ...form,
                         id: getUuid()
                     }
                 ];
+                saveData(newAllData);
             }
-            // if (!isExist) {
-            // 添加
-            //     allData.push({
-            //         ...form,
-            //         id: getUuid()
-            //     });
-            // }
-            localStorage.setItem('data', JSON.stringify(newAllData));
-            saveToStorage(drugNameList, 'drugNameList', form.name);
-            saveToStorage(drugFactoryList, 'drugFactoryList', form.factory);
-            saveToStorage(drugPositionList, 'drugPositionList', form.position);
-            emit('added');
-
-            ElMessage.success('添加成功');
+            ElMessage.success(isEdit ? '更改成功' : '添加成功');
             formEl.resetFields();
             console.log('submit!', form);
         } else {
@@ -113,7 +109,12 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         }
     });
 };
-
+const saveData = data => {
+    localStorage.setItem('data', JSON.stringify(data));
+    saveToStorage(drugNameList, 'drugNameList', form.name);
+    saveToStorage(drugFactoryList, 'drugFactoryList', form.factory);
+    saveToStorage(drugPositionList, 'drugPositionList', form.position);
+};
 const resetForm = (formEl: FormInstance | undefined) => {
     if (!formEl) return;
     formEl.resetFields();

@@ -16,23 +16,19 @@
             </template>
         </el-table-column>
     </el-table>
+    <el-dialog v-if="state.dialogFormVisible" v-model="state.dialogFormVisible">
+        <Add :params="state.editData" @edit="editHandle"></Add>
+    </el-dialog>
 </template>
 <script setup lang="ts">
-interface User {
-    id: string;
-    name: string;
-    factory: string;
-    position: string;
-    layer: string;
-}
-
+import type { User } from './types';
 import { reactive } from 'vue';
-import { useRouter } from 'vue-router';
-const router = useRouter();
+import Add from './Add.vue';
 const state = reactive({
     allData: JSON.parse(localStorage.getItem('data') || '[]'),
     searchVal: '',
     tableData: [],
+    editData: {},
     dialogFormVisible: false
 });
 const handleSearch = () => {
@@ -58,7 +54,13 @@ const handleDelete = (index: number, row: User) => {
         });
 };
 const handlEdit = (index: number, row) => {
-    router.push({ name: 'add', query: { data: JSON.stringify(row) }, params: { data: row } });
+    state.editData = row;
+    state.dialogFormVisible = true;
+};
+const editHandle = () => {
+    state.allData = JSON.parse(localStorage.getItem('data') || '[]');
+    state.dialogFormVisible = false;
+    handleSearch();
 };
 </script>
 <style>

@@ -7,7 +7,7 @@
                         <el-menu-item index="0"> 查询药品 </el-menu-item>
                     </RouterLink>
                     <RouterLink to="/add">
-                        <el-menu-item index="1"> 编辑药品 </el-menu-item>
+                        <el-menu-item index="1"> 添加药品 </el-menu-item>
                     </RouterLink>
                 </el-menu>
             </el-aside>
